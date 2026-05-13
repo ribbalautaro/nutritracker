@@ -760,7 +760,7 @@
       tokenExpiry: null,
       tokenClient: null,
       patients: [],
-      filter: { status: 'todos', search: '', autoOnly: false },
+      filter: { status: 'todos', search: '', autoOnly: false, sort: 'prioridad' },
       loading: false,
       offline: !navigator.onLine,
       sentToday: loadSentToday(),
@@ -1117,17 +1117,36 @@
       return patients;
     }
 
-    function ordenPacientes(pacientes) {
-      const orden = { pendiente: 0, seguimiento: 1, aldia: 2, sin: 3 };
-      return [...pacientes].sort((a, b) => {
-        const oa = orden[a.estado] ?? 9;
-        const ob = orden[b.estado] ?? 9;
-        if (oa !== ob) return oa - ob;
-        // dentro del mismo estado: más días desde último control primero
-        const da = a.diasDesde == null ? -Infinity : a.diasDesde;
-        const db = b.diasDesde == null ? -Infinity : b.diasDesde;
-        return db - da;
-      });
+    function ordenPacientes(pacientes, modo) {
+      modo = modo || 'prioridad';
+      const arr = [...pacientes];
+      if (modo === 'nombre') {
+        arr.sort((a, b) => (a.nombreInfo.paciente || '').localeCompare(b.nombreInfo.paciente || '', 'es', { sensitivity: 'base' }));
+      } else if (modo === 'recientes') {
+        arr.sort((a, b) => {
+          const da = a.fechaConsulta ? a.fechaConsulta.getTime() : 0;
+          const db = b.fechaConsulta ? b.fechaConsulta.getTime() : 0;
+          return db - da;
+        });
+      } else if (modo === 'antiguos') {
+        arr.sort((a, b) => {
+          const da = a.fechaConsulta ? a.fechaConsulta.getTime() : Infinity;
+          const db = b.fechaConsulta ? b.fechaConsulta.getTime() : Infinity;
+          return da - db;
+        });
+      } else {
+        // prioridad (default)
+        const orden = { pendiente: 0, seguimiento: 1, aldia: 2, sin: 3 };
+        arr.sort((a, b) => {
+          const oa = orden[a.estado] ?? 9;
+          const ob = orden[b.estado] ?? 9;
+          if (oa !== ob) return oa - ob;
+          const da = a.diasDesde == null ? -Infinity : a.diasDesde;
+          const db = b.diasDesde == null ? -Infinity : b.diasDesde;
+          return db - da;
+        });
+      }
+      return arr;
     }
 
     function filtrarPacientes(pacientes, filtros) {
@@ -1443,6 +1462,26 @@
       tgl.appendChild(document.createTextNode('Solo auto-mensaje'));
       wrap.appendChild(tgl);
 
+      const sortSel = el('select', { class: 'select', style: 'width: auto; padding: 7px 10px; font-size: 13px;' });
+      const sortOpts = [
+        { v: 'prioridad', l: 'Por prioridad' },
+        { v: 'nombre', l: 'Por nombre A-Z' },
+        { v: 'recientes', l: 'Última consulta (recientes)' },
+        { v: 'antiguos', l: 'Última consulta (antiguos)' },
+      ];
+      sortOpts.forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o.v;
+        opt.textContent = o.l;
+        if (state.filter.sort === o.v) opt.selected = true;
+        sortSel.appendChild(opt);
+      });
+      sortSel.addEventListener('change', (e) => {
+        state.filter.sort = e.target.value;
+        renderListOnly();
+      });
+      wrap.appendChild(sortSel);
+
       return wrap;
     }
 
@@ -1469,7 +1508,7 @@
         return wrap;
       }
 
-      const filtered = filtrarPacientes(ordenPacientes(state.patients), state.filter);
+      const filtered = filtrarPacientes(ordenPacientes(state.patients, state.filter.sort), state.filter);
 
       if (filtered.length === 0) {
         const wrap = el('div', { class: 'table-wrap' });

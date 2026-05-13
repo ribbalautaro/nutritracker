@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#16a34a">
   <title>NutriTracker · Lautaro Ribba</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M16 4C9 4 5 11 5 17c0 7 5 11 11 11s11-4 11-11c0-6-4-13-11-13z' fill='%2316a34a'/%3E%3Cpath d='M16 8c-3 0-5 4-5 8s2 7 5 7 5-3 5-7-2-8-5-8z' fill='%2322c55e'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -229,6 +230,19 @@
       border-radius: 8px;
     }
     .btn-edit:hover { background: var(--surface-2); color: var(--text); }
+    .btn-mark {
+      background: transparent;
+      color: var(--green-text);
+      padding: 8px 10px;
+      font-size: 13px;
+      border: 1px solid var(--green);
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-mark:hover { background: var(--green-bg); }
+    .btn-mark.active { background: var(--green); color: white; }
 
     /* ========= HEADER ========= */
     .header {
@@ -244,6 +258,16 @@
       z-index: 50;
       box-shadow: var(--shadow-sm);
     }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .brand-logo svg { width: 100%; height: 100%; }
     .header-left { display: flex; flex-direction: column; min-width: 0; }
     .header-title {
       font-weight: 600;
@@ -382,29 +406,30 @@
       user-select: none;
     }
     .toggle {
-      width: 36px;
-      height: 20px;
-      background: var(--border);
+      width: 44px;
+      height: 24px;
+      background: var(--text-3);
       border-radius: 999px;
       position: relative;
       transition: background 200ms;
       flex-shrink: 0;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,.15);
     }
     .toggle::after {
       content: '';
       position: absolute;
       top: 2px;
       left: 2px;
-      width: 16px;
-      height: 16px;
+      width: 20px;
+      height: 20px;
       background: white;
       border-radius: 50%;
-      transition: transform 200ms;
-      box-shadow: 0 1px 2px rgba(0,0,0,.2);
+      transition: transform 200ms, background 200ms;
+      box-shadow: 0 2px 4px rgba(0,0,0,.25), 0 0 0 1px rgba(0,0,0,.05);
     }
     .toggle-input { display: none; }
-    .toggle-input:checked + .toggle { background: var(--accent); }
-    .toggle-input:checked + .toggle::after { transform: translateX(16px); }
+    .toggle-input:checked + .toggle { background: var(--accent); box-shadow: inset 0 1px 2px rgba(0,0,0,.25); }
+    .toggle-input:checked + .toggle::after { transform: translateX(20px); }
 
     /* ========= TABLE ========= */
     .table-wrap {
@@ -717,7 +742,13 @@
       theme: 'nt_theme',
       cache: 'nt_cache',
       sentToday: 'nt_sent_today',
+      templateDirecto: 'nt_template_directo',
+      templateIntermediario: 'nt_template_intermediario',
     };
+
+    const DEFAULT_TEMPLATE_DIRECTO = `Hola {contacto}! 👋🏼\nTe escribo para hacer un control de cómo venís con el plan 😊\n\nContame:\n📋 ¿Cómo venís siguiendo las pautas del plan?\n💬 ¿Tuviste alguna dificultad o algo que no pudiste sostener?\n⚡ ¿Notás algún cambio, ya sea en energía, digestión o cómo te sentís en general?\n\nCualquier cosa que necesites, decime 🙌🏼\n\nSaludos, Lautaro 🌿`;
+
+    const DEFAULT_TEMPLATE_INTERMEDIARIO = `Hola {contacto}! 👋🏼\nTe escribo para hacer un control de cómo viene {paciente} con el plan 😊\n\nContame:\n📋 ¿Cómo viene siguiendo las pautas del plan?\n💬 ¿Hubo alguna dificultad o algo que no pudo sostener?\n⚡ ¿Notás algún cambio, ya sea en energía, digestión o cómo se siente en general?\n\nCualquier cosa que necesiten, decime 🙌🏼\n\nSaludos, Lautaro 🌿`;
 
     const state = {
       config: {
@@ -884,11 +915,13 @@
 
     function construirMensaje(p) {
       const contactoNombre = primerNombre(p.nombreInfo.contacto);
-      if (p.nombreInfo.esIntermediario) {
-        const pacNombre = primerNombre(p.nombreInfo.paciente);
-        return `Hola ${contactoNombre}! 👋🏼\nTe escribo para hacer un control de cómo viene ${pacNombre} con el plan 😊\n\nContame:\n📋 ¿Cómo viene siguiendo las pautas del plan?\n💬 ¿Hubo alguna dificultad o algo que no pudo sostener?\n⚡ ¿Notás algún cambio, ya sea en energía, digestión o cómo se siente en general?\n\nCualquier cosa que necesiten, decime 🙌🏼\n\nSaludos, Lautaro 🌿`;
-      }
-      return `Hola ${contactoNombre}! 👋🏼\nTe escribo para hacer un control de cómo venís con el plan 😊\n\nContame:\n📋 ¿Cómo venís siguiendo las pautas del plan?\n💬 ¿Tuviste alguna dificultad o algo que no pudiste sostener?\n⚡ ¿Notás algún cambio, ya sea en energía, digestión o cómo te sentís en general?\n\nCualquier cosa que necesites, decime 🙌🏼\n\nSaludos, Lautaro 🌿`;
+      const pacNombre = primerNombre(p.nombreInfo.paciente);
+      const template = p.nombreInfo.esIntermediario
+        ? (localStorage.getItem(STORAGE.templateIntermediario) || DEFAULT_TEMPLATE_INTERMEDIARIO)
+        : (localStorage.getItem(STORAGE.templateDirecto) || DEFAULT_TEMPLATE_DIRECTO);
+      return template
+        .replace(/\{contacto\}/g, contactoNombre)
+        .replace(/\{paciente\}/g, pacNombre);
     }
 
     function fmtFechaActualEs() {
@@ -1277,6 +1310,13 @@
       root.innerHTML = '';
       const app = el('div');
 
+      // Update document title with pending count
+      const counts = contarEstados(state.patients);
+      const pendientesYSeguimiento = (counts.pendiente || 0) + (counts.seguimiento || 0);
+      document.title = pendientesYSeguimiento > 0
+        ? `(${pendientesYSeguimiento}) NutriTracker · Lautaro Ribba`
+        : 'NutriTracker · Lautaro Ribba';
+
       if (state.offline) {
         app.appendChild(el('div', { class: 'offline-banner' }, '⚠ Sin conexión — mostrando últimos datos cacheados'));
       }
@@ -1292,10 +1332,16 @@
 
     function renderHeader() {
       const h = el('header', { class: 'header' });
+      const brand = el('div', { class: 'brand' });
+      const logo = document.createElement('div');
+      logo.className = 'brand-logo';
+      logo.innerHTML = '<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 4C9 4 5 11 5 17c0 7 5 11 11 11s11-4 11-11c0-6-4-13-11-13z" fill="#16a34a"/><path d="M16 8c-3 0-5 4-5 8s2 7 5 7 5-3 5-7-2-8-5-8z" fill="#22c55e"/><path d="M16 12c-1 0-2 2-2 4s1 3 2 3 2-1 2-3-1-4-2-4z" fill="#15803d"/></svg>';
+      brand.appendChild(logo);
       const left = el('div', { class: 'header-left' }, [
-        el('div', { class: 'header-title' }, 'NutriTracker · Lautaro Ribba'),
+        el('div', { class: 'header-title' }, 'NutriTracker'),
         el('div', { class: 'header-date' }, fmtFechaActualEs()),
       ]);
+      brand.appendChild(left);
       const right = el('div', { class: 'header-actions' });
       const refreshBtn = el('button', { class: 'btn-icon', title: 'Recargar', onclick: () => loadData(true) });
       refreshBtn.appendChild(svgIcon('refresh'));
@@ -1319,7 +1365,7 @@
         plusBtn.appendChild(svgIcon('plus'));
         right.appendChild(plusBtn);
       }
-      h.appendChild(left);
+      h.appendChild(brand);
       h.appendChild(right);
       return h;
     }
@@ -1513,25 +1559,25 @@
       const cell = el('td', { class: 'actions-cell' });
       const wrap = el('div', { style: 'display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap;' });
 
-      const canWa = (p.estado === 'pendiente' || p.estado === 'seguimiento') && tieneTelValido(p.telefono) && p.autoMsg;
+      const necesita = p.estado === 'pendiente' || p.estado === 'seguimiento';
+      const canWa = necesita && tieneTelValido(p.telefono) && p.autoMsg;
       const alreadySent = state.sentToday.ids.includes(p.sheetRow);
 
-      if (canWa) {
+      if (necesita) {
         if (alreadySent) {
-          const sent = el('button', { class: 'btn-wa sent', disabled: 'disabled' }, 'Enviado ✓');
-          wrap.appendChild(sent);
+          wrap.appendChild(el('button', { class: 'btn-wa sent', disabled: 'disabled' }, 'Contactado ✓'));
         } else {
-          const wbtn = el('button', { class: 'btn-wa', onclick: () => enviarWhatsApp(p) });
-          wbtn.appendChild(svgIcon('whatsapp'));
-          wbtn.appendChild(document.createTextNode(' WhatsApp'));
-          wrap.appendChild(wbtn);
+          if (canWa) {
+            const wbtn = el('button', { class: 'btn-wa', onclick: () => enviarWhatsApp(p), title: 'Abrir WhatsApp con el mensaje' });
+            wbtn.appendChild(svgIcon('whatsapp'));
+            wbtn.appendChild(document.createTextNode(' WhatsApp'));
+            wrap.appendChild(wbtn);
+          }
+          const markBtn = el('button', { class: 'btn-mark', onclick: () => marcarContactado(p), title: 'Marcar como contactado (sin abrir WhatsApp)' }, canWa ? '✓' : '✓ Marcar');
+          wrap.appendChild(markBtn);
         }
       } else if (p.estado === 'aldia') {
         wrap.appendChild(el('span', { class: 'badge green' }, '✓ Al día'));
-      } else if (!tieneTelValido(p.telefono)) {
-        wrap.appendChild(el('span', { class: 'badge outline' }, 'Sin teléfono'));
-      } else if (!p.autoMsg) {
-        wrap.appendChild(el('span', { class: 'badge outline' }, 'Manual'));
       }
 
       const editBtn = el('button', { class: 'btn-edit', onclick: () => openPatientModal(p) }, 'Editar');
@@ -1564,16 +1610,20 @@
         card.appendChild(meta);
 
         const acts = el('div', { class: 'pcard-actions' });
-        const canWa = (p.estado === 'pendiente' || p.estado === 'seguimiento') && tieneTelValido(p.telefono) && p.autoMsg;
+        const necesita = p.estado === 'pendiente' || p.estado === 'seguimiento';
+        const canWa = necesita && tieneTelValido(p.telefono) && p.autoMsg;
         const alreadySent = state.sentToday.ids.includes(p.sheetRow);
-        if (canWa) {
+        if (necesita) {
           if (alreadySent) {
-            acts.appendChild(el('button', { class: 'btn-wa sent', disabled: 'disabled' }, 'Enviado ✓'));
+            acts.appendChild(el('button', { class: 'btn-wa sent', disabled: 'disabled' }, 'Contactado ✓'));
           } else {
-            const wbtn = el('button', { class: 'btn-wa', onclick: () => enviarWhatsApp(p) });
-            wbtn.appendChild(svgIcon('whatsapp'));
-            wbtn.appendChild(document.createTextNode(' WhatsApp'));
-            acts.appendChild(wbtn);
+            if (canWa) {
+              const wbtn = el('button', { class: 'btn-wa', onclick: () => enviarWhatsApp(p) });
+              wbtn.appendChild(svgIcon('whatsapp'));
+              wbtn.appendChild(document.createTextNode(' WhatsApp'));
+              acts.appendChild(wbtn);
+            }
+            acts.appendChild(el('button', { class: 'btn-mark', onclick: () => marcarContactado(p) }, '✓ Marcar'));
           }
         }
         acts.appendChild(el('button', { class: 'btn-edit', onclick: () => openPatientModal(p) }, 'Editar'));
@@ -1586,6 +1636,21 @@
     // ═══════════════════════════════════════════════════════════════
     //                  ACCIONES
     // ═══════════════════════════════════════════════════════════════
+    async function marcarContactado(p) {
+      markSent(p.sheetRow);
+      toast(`${primerNombre(p.nombreInfo.paciente)} marcado como contactado ✓`);
+      renderApp();
+      if (state.token) {
+        try {
+          await updateCells(p.sheetRow, 'L', [fmtFechaSheet(new Date())]);
+        } catch (e) {
+          if (e.message === 'TOKEN_EXPIRED') {
+            try { await requestToken(); await updateCells(p.sheetRow, 'L', [fmtFechaSheet(new Date())]); } catch {}
+          }
+        }
+      }
+    }
+
     async function enviarWhatsApp(p) {
       if (!tieneTelValido(p.telefono)) { toast('Teléfono inválido', 'error'); return; }
       const msj = construirMensaje(p);
@@ -1863,6 +1928,29 @@
       clientField.appendChild(clientInput);
       modal.appendChild(clientField);
 
+      // Templates editor
+      modal.appendChild(el('div', { style: 'margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);' }, [
+        el('strong', { style: 'display:block; margin-bottom: 4px;' }, 'Plantillas de mensaje'),
+        el('div', { style: 'font-size:12px; color: var(--text-2); margin-bottom: 12px;' }, 'Usá {contacto} para el nombre de quien recibe el mensaje y {paciente} para el nombre del paciente.'),
+      ]));
+      const tplDirectoField = el('div', { class: 'field' });
+      tplDirectoField.appendChild(el('label', null, 'Mensaje directo (al paciente)'));
+      const tplDirectoInput = el('textarea', { class: 'textarea', rows: '7' }, localStorage.getItem(STORAGE.templateDirecto) || DEFAULT_TEMPLATE_DIRECTO);
+      tplDirectoField.appendChild(tplDirectoInput);
+      modal.appendChild(tplDirectoField);
+
+      const tplInterField = el('div', { class: 'field' });
+      tplInterField.appendChild(el('label', null, 'Mensaje vía intermediario'));
+      const tplInterInput = el('textarea', { class: 'textarea', rows: '7' }, localStorage.getItem(STORAGE.templateIntermediario) || DEFAULT_TEMPLATE_INTERMEDIARIO);
+      tplInterField.appendChild(tplInterInput);
+      modal.appendChild(tplInterField);
+
+      const resetTplBtn = el('button', { class: 'btn btn-secondary', style: 'margin-bottom: 16px;', onclick: () => {
+        tplDirectoInput.value = DEFAULT_TEMPLATE_DIRECTO;
+        tplInterInput.value = DEFAULT_TEMPLATE_INTERMEDIARIO;
+      } }, 'Restaurar plantillas originales');
+      modal.appendChild(resetTplBtn);
+
       // OAuth status
       const statusRow = el('div', { class: 'config-row' });
       statusRow.appendChild(el('div', { class: 'config-row-info' }, [
@@ -1923,6 +2011,8 @@
           localStorage.setItem(STORAGE.sheetId, newSheet);
           if (newClient) localStorage.setItem(STORAGE.clientId, newClient);
           else localStorage.removeItem(STORAGE.clientId);
+          if (tplDirectoInput.value.trim()) localStorage.setItem(STORAGE.templateDirecto, tplDirectoInput.value);
+          if (tplInterInput.value.trim()) localStorage.setItem(STORAGE.templateIntermediario, tplInterInput.value);
           toast('Configuración guardada ✓');
           closeModal();
           renderApp();

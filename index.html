@@ -704,6 +704,7 @@
     //                    CONSTANTS & STATE
     // ═══════════════════════════════════════════════════════════════
     const DEFAULT_SHEET_ID = '145hiN0b4MhLAgfrfEPPAj64KyEj3TDAkN8Dm3S0H-to';
+    const DEFAULT_API_KEY = 'AIzaSyDnaG33UdtWIKD-HtkBWoh0NfbM4pQwelI';
     const SHEET_NAME = 'Pacientes';
     const RANGE_READ = `${SHEET_NAME}!A2:N`;
     const OAUTH_SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
@@ -719,7 +720,7 @@
 
     const state = {
       config: {
-        apiKey: localStorage.getItem(STORAGE.apiKey) || '',
+        apiKey: localStorage.getItem(STORAGE.apiKey) || DEFAULT_API_KEY,
         sheetId: localStorage.getItem(STORAGE.sheetId) || DEFAULT_SHEET_ID,
         clientId: localStorage.getItem(STORAGE.clientId) || '',
       },

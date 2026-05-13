@@ -705,6 +705,7 @@
     // ═══════════════════════════════════════════════════════════════
     const DEFAULT_SHEET_ID = '145hiN0b4MhLAgfrfEPPAj64KyEj3TDAkN8Dm3S0H-to';
     const DEFAULT_API_KEY = 'AIzaSyDnaG33UdtWIKD-HtkBWoh0NfbM4pQwelI';
+    const DEFAULT_CLIENT_ID = '944306238753-94c2mn1mp3v9uumqv2q953b7ig0upmo8.apps.googleusercontent.com';
     const SHEET_NAME = 'Pacientes';
     const RANGE_READ = `${SHEET_NAME}!A2:N`;
     const OAUTH_SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
@@ -722,7 +723,7 @@
       config: {
         apiKey: localStorage.getItem(STORAGE.apiKey) || DEFAULT_API_KEY,
         sheetId: localStorage.getItem(STORAGE.sheetId) || DEFAULT_SHEET_ID,
-        clientId: localStorage.getItem(STORAGE.clientId) || '',
+        clientId: localStorage.getItem(STORAGE.clientId) || DEFAULT_CLIENT_ID,
       },
       token: null,
       tokenExpiry: null,

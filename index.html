@@ -219,8 +219,9 @@
     .btn-wa.sent {
       background: var(--gray-bg);
       color: var(--text-2);
-      cursor: default;
+      cursor: pointer;
     }
+    .btn-wa.sent:hover { background: var(--border); color: var(--text); }
     .btn-edit {
       background: transparent;
       color: var(--text-2);
@@ -396,16 +397,20 @@
       outline: none;
       border-color: var(--accent);
     }
-    .toggle-label {
+    .toggle-label,
+    .field label.toggle-label {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       cursor: pointer;
-      font-size: 13px;
-      color: var(--text-2);
+      font-size: 14px;
+      color: var(--text);
       user-select: none;
+      margin-bottom: 0;
+      font-weight: 400;
     }
     .toggle {
+      display: inline-block;
       width: 44px;
       height: 24px;
       background: var(--text-3);
@@ -505,8 +510,10 @@
     }
     .actions-cell { display: flex; gap: 6px; flex-wrap: nowrap; justify-content: flex-end; }
     .num-cell { color: var(--text); font-weight: 500; }
-    .days-warn { color: var(--red-text); font-weight: 600; }
-    .days-ok { color: var(--text-2); }
+    .days-warn { color: var(--red-text); font-weight: 600; white-space: nowrap; }
+    .days-ok { color: var(--text-2); white-space: nowrap; }
+    .table tbody td { white-space: nowrap; }
+    .table tbody td:first-child { white-space: normal; }
 
     /* ========= MOBILE CARDS ========= */
     .cards { display: none; flex-direction: column; gap: 10px; }
@@ -746,9 +753,9 @@
       templateIntermediario: 'nt_template_intermediario',
     };
 
-    const DEFAULT_TEMPLATE_DIRECTO = `Hola {contacto}! 👋🏼\nTe escribo para hacer un control de cómo venís con el plan 😊\n\nContame:\n📋 ¿Cómo venís siguiendo las pautas del plan?\n💬 ¿Tuviste alguna dificultad o algo que no pudiste sostener?\n⚡ ¿Notás algún cambio, ya sea en energía, digestión o cómo te sentís en general?\n\nCualquier cosa que necesites, decime 🙌🏼\n\nSaludos, Lautaro 🌿`;
+    const DEFAULT_TEMPLATE_DIRECTO = `Hola {contacto}! 👋\nTe escribo para hacer un control de cómo venís con el plan 😊\n\nContame:\n📋 ¿Cómo venís siguiendo las pautas del plan?\n💬 ¿Tuviste alguna dificultad o algo que no pudiste sostener?\n⚡ ¿Notás algún cambio, ya sea en energía, digestión o cómo te sentís en general?\n\nCualquier cosa que necesites, decime 🙌\n\nSaludos, Lautaro 🌿`;
 
-    const DEFAULT_TEMPLATE_INTERMEDIARIO = `Hola {contacto}! 👋🏼\nTe escribo para hacer un control de cómo viene {paciente} con el plan 😊\n\nContame:\n📋 ¿Cómo viene siguiendo las pautas del plan?\n💬 ¿Hubo alguna dificultad o algo que no pudo sostener?\n⚡ ¿Notás algún cambio, ya sea en energía, digestión o cómo se siente en general?\n\nCualquier cosa que necesiten, decime 🙌🏼\n\nSaludos, Lautaro 🌿`;
+    const DEFAULT_TEMPLATE_INTERMEDIARIO = `Hola {contacto}! 👋\nTe escribo para hacer un control de cómo viene {paciente} con el plan 😊\n\nContame:\n📋 ¿Cómo viene siguiendo las pautas del plan?\n💬 ¿Hubo alguna dificultad o algo que no pudo sostener?\n⚡ ¿Notás algún cambio, ya sea en energía, digestión o cómo se siente en general?\n\nCualquier cosa que necesiten, decime 🙌\n\nSaludos, Lautaro 🌿`;
 
     const state = {
       config: {
@@ -779,6 +786,10 @@
         state.sentToday.ids.push(row);
         localStorage.setItem(STORAGE.sentToday, JSON.stringify(state.sentToday));
       }
+    }
+    function unmarkSent(row) {
+      state.sentToday.ids = state.sentToday.ids.filter(id => id !== row);
+      localStorage.setItem(STORAGE.sentToday, JSON.stringify(state.sentToday));
     }
 
     // restore token if not expired
@@ -1426,11 +1437,13 @@
         { k: 'aldia', l: 'Al día' },
         { k: 'sin', l: 'Sin consulta' },
       ];
+      const counts = contarEstados(state.patients);
+      const countFor = (k) => k === 'todos' ? state.patients.length : (counts[k] || 0);
       tabsList.forEach(t => {
         const tab = el('button', {
           class: 'tab' + (state.filter.status === t.k ? ' active' : ''),
           onclick: () => { state.filter.status = t.k; renderApp(); }
-        }, t.l);
+        }, `${t.l} (${countFor(t.k)})`);
         tabs.appendChild(tab);
       });
       wrap.appendChild(tabs);
@@ -1604,7 +1617,7 @@
 
       if (necesita) {
         if (alreadySent) {
-          wrap.appendChild(el('button', { class: 'btn-wa sent', disabled: 'disabled' }, 'Contactado ✓'));
+          wrap.appendChild(el('button', { class: 'btn-wa sent', onclick: () => desmarcarContactado(p), title: 'Tocá para deshacer y volver a habilitar el envío' }, 'Contactado ✓ · deshacer'));
         } else {
           if (canWa) {
             const wbtn = el('button', { class: 'btn-wa', onclick: () => enviarWhatsApp(p), title: 'Abrir WhatsApp con el mensaje' });
@@ -1654,7 +1667,7 @@
         const alreadySent = state.sentToday.ids.includes(p.sheetRow);
         if (necesita) {
           if (alreadySent) {
-            acts.appendChild(el('button', { class: 'btn-wa sent', disabled: 'disabled' }, 'Contactado ✓'));
+            acts.appendChild(el('button', { class: 'btn-wa sent', onclick: () => desmarcarContactado(p), title: 'Tocá para deshacer' }, 'Contactado ✓ · deshacer'));
           } else {
             if (canWa) {
               const wbtn = el('button', { class: 'btn-wa', onclick: () => enviarWhatsApp(p) });
@@ -1685,6 +1698,23 @@
         } catch (e) {
           if (e.message === 'TOKEN_EXPIRED') {
             try { await requestToken(); await updateCells(p.sheetRow, 'L', [fmtFechaSheet(new Date())]); } catch {}
+          }
+        }
+      }
+    }
+
+    async function desmarcarContactado(p) {
+      unmarkSent(p.sheetRow);
+      toast(`${primerNombre(p.nombreInfo.paciente)}: contacto deshecho — podés volver a enviar`);
+      renderApp();
+      // revertir la columna L del sheet al valor anterior
+      if (state.token) {
+        const valorAnterior = p.ultimoAutoMsj ? fmtFechaSheet(p.ultimoAutoMsj) : '';
+        try {
+          await updateCells(p.sheetRow, 'L', [valorAnterior]);
+        } catch (e) {
+          if (e.message === 'TOKEN_EXPIRED') {
+            try { await requestToken(); await updateCells(p.sheetRow, 'L', [valorAnterior]); } catch {}
           }
         }
       }

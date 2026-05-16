@@ -27,6 +27,9 @@
       --red: #ef4444;
       --red-text: #b91c1c;
       --red-bg: #fee2e2;
+      --blue: #3b82f6;
+      --blue-text: #1d4ed8;
+      --blue-bg: #dbeafe;
       --gray: #9ca3af;
       --gray-bg: #f3f4f6;
       --accent: #16a34a;
@@ -49,6 +52,8 @@
       --amber-text: #fbbf24;
       --red-bg: rgba(239,68,68,.18);
       --red-text: #f87171;
+      --blue-bg: rgba(59,130,246,.18);
+      --blue-text: #60a5fa;
       --gray-bg: #273449;
       --shadow: 0 1px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3);
       --shadow-lg: 0 10px 25px rgba(0,0,0,.5), 0 4px 10px rgba(0,0,0,.3);
@@ -244,6 +249,19 @@
     }
     .btn-mark:hover { background: var(--green-bg); }
     .btn-mark.active { background: var(--green); color: white; }
+    .btn-undo {
+      background: var(--blue-bg);
+      color: var(--blue-text);
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid var(--blue);
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-undo:hover { background: var(--blue); color: white; }
 
     /* ========= HEADER ========= */
     .header {
@@ -324,6 +342,7 @@
     .stat-card.green { --bar-color: var(--green); }
     .stat-card.amber { --bar-color: var(--amber); }
     .stat-card.red { --bar-color: var(--red); }
+    .stat-card.blue { --bar-color: var(--blue); }
     .stat-card.gray { --bar-color: var(--gray); }
     .stat-number {
       font-size: 28px;
@@ -339,6 +358,7 @@
     .stat-card.green .stat-number { color: var(--green-text); }
     .stat-card.amber .stat-number { color: var(--amber-text); }
     .stat-card.red .stat-number { color: var(--red-text); }
+    .stat-card.blue .stat-number { color: var(--blue-text); }
 
     /* ========= FILTERS ========= */
     .filters {
@@ -466,9 +486,11 @@
     .table tbody tr:hover { background: var(--surface-2); }
     .table tbody tr.row-red { background: rgba(239,68,68,.04); }
     .table tbody tr.row-amber { background: rgba(245,158,11,.04); }
+    .table tbody tr.row-blue { background: rgba(59,130,246,.04); }
     .table tbody tr.row-gray { background: rgba(156,163,175,.04); }
     [data-theme="dark"] .table tbody tr.row-red { background: rgba(239,68,68,.08); }
     [data-theme="dark"] .table tbody tr.row-amber { background: rgba(245,158,11,.08); }
+    [data-theme="dark"] .table tbody tr.row-blue { background: rgba(59,130,246,.1); }
 
     .patient-name {
       font-weight: 500;
@@ -493,6 +515,7 @@
     .badge.green { background: var(--green-bg); color: var(--green-text); }
     .badge.amber { background: var(--amber-bg); color: var(--amber-text); }
     .badge.red { background: var(--red-bg); color: var(--red-text); }
+    .badge.blue { background: var(--blue-bg); color: var(--blue-text); }
     .badge.gray { background: var(--gray-bg); color: var(--text-2); }
     .badge.outline {
       background: transparent;
@@ -527,6 +550,7 @@
       gap: 8px;
     }
     .pcard.red { border-left: 4px solid var(--red); }
+    .pcard.blue { border-left: 4px solid var(--blue); }
     .pcard.amber { border-left: 4px solid var(--amber); }
     .pcard.green { border-left: 4px solid var(--green); }
     .pcard.gray { border-left: 4px solid var(--gray); }
@@ -539,7 +563,9 @@
     .pcard-name { font-weight: 600; font-size: 15px; }
     .pcard-meta { font-size: 12px; color: var(--text-2); line-height: 1.5; }
     .pcard-actions { display: flex; gap: 8px; margin-top: 4px; }
-    .pcard-actions .btn-wa, .pcard-actions .btn-edit { flex: 1; }
+    .pcard-actions .btn-wa, .pcard-actions .btn-edit,
+    .pcard-actions .btn-mark, .pcard-actions .btn-undo { flex: 1; justify-content: center; }
+    .pcard-actions { flex-wrap: wrap; }
 
     /* ========= MODAL ========= */
     .modal-backdrop {
@@ -751,7 +777,11 @@
       sentToday: 'nt_sent_today',
       templateDirecto: 'nt_template_directo',
       templateIntermediario: 'nt_template_intermediario',
+      snooze: 'nt_snooze',
+      diasRecontacto: 'nt_dias_recontacto',
     };
+
+    const DEFAULT_DIAS_RECONTACTO = 7;
 
     const DEFAULT_TEMPLATE_DIRECTO = `Hola {contacto}! 👋\nTe escribo para hacer un control de cómo venís con el plan 😊\n\nContame:\n📋 ¿Cómo venís siguiendo las pautas del plan?\n💬 ¿Tuviste alguna dificultad o algo que no pudiste sostener?\n⚡ ¿Notás algún cambio, ya sea en energía, digestión o cómo te sentís en general?\n\nCualquier cosa que necesites, decime 🙌\n\nSaludos, Lautaro 🌿`;
 
@@ -790,6 +820,54 @@
     function unmarkSent(row) {
       state.sentToday.ids = state.sentToday.ids.filter(id => id !== row);
       localStorage.setItem(STORAGE.sentToday, JSON.stringify(state.sentToday));
+    }
+
+    // ── Snooze / recontacto ──────────────────────────────────────
+    function getDiasRecontacto() {
+      const n = parseInt(localStorage.getItem(STORAGE.diasRecontacto), 10);
+      return (!isNaN(n) && n > 0) ? n : DEFAULT_DIAS_RECONTACTO;
+    }
+    function loadSnoozes() {
+      try { return JSON.parse(localStorage.getItem(STORAGE.snooze) || '{}'); }
+      catch { return {}; }
+    }
+    function saveSnoozes(obj) {
+      localStorage.setItem(STORAGE.snooze, JSON.stringify(obj));
+    }
+    function getSnoozeUntil(row) {
+      const s = loadSnoozes();
+      const v = s[String(row)];
+      if (!v) return null;
+      const d = new Date(v + 'T00:00:00');
+      return isNaN(d.getTime()) ? null : d;
+    }
+    function setSnooze(row, dias) {
+      const s = loadSnoozes();
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() + dias);
+      s[String(row)] = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      saveSnoozes(s);
+    }
+    function clearSnooze(row) {
+      const s = loadSnoozes();
+      delete s[String(row)];
+      saveSnoozes(s);
+    }
+    // info de cuándo reaparece un paciente "esperando"
+    function infoEsperando(p) {
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      let until = getSnoozeUntil(p.sheetRow);
+      if (!until && p.ultimoAutoMsj) {
+        until = new Date(p.ultimoAutoMsj.getTime());
+        until.setHours(0, 0, 0, 0);
+        until.setDate(until.getDate() + getDiasRecontacto());
+      }
+      if (!until) return 'Contactado';
+      const dias = diasEntre(hoy, until);
+      if (dias <= 0) return 'Listo para recontactar';
+      return `Contactado · recordar en ${dias} ${dias === 1 ? 'día' : 'días'}`;
     }
 
     // restore token if not expired
@@ -909,13 +987,30 @@
       const dias = diasEntre(p.fechaConsulta, hoy);
       const intervalo = p.diasEntreControles || 30;
       if (dias < intervalo - 7) return 'aldia';
-      if (dias < intervalo) return 'seguimiento';
-      // si pasó el intervalo, y hay seguimientos intermedios (>30), buscar próximo múltiplo
-      if (intervalo > 30) {
+
+      // estado base según la fecha de última consulta
+      let base;
+      if (dias < intervalo) {
+        base = 'seguimiento';
+      } else if (intervalo > 30) {
         const ciclo = dias % intervalo;
-        if (ciclo >= intervalo - 7 || ciclo < 7) return 'seguimiento';
+        base = (ciclo >= intervalo - 7 || ciclo < 7) ? 'seguimiento' : 'pendiente';
+      } else {
+        base = 'pendiente';
       }
-      return 'pendiente';
+
+      // ¿lo contacté hace poco? → "esperando" (azul), sale del rojo por unos días
+      const snoozeUntil = getSnoozeUntil(p.sheetRow);
+      if (snoozeUntil !== null) {
+        // hay un recordatorio explícito elegido en el popup
+        if (hoy < snoozeUntil) return 'esperando';
+        // si ya venció, cae al estado base (vuelve a pendiente/seguimiento)
+      } else if (p.ultimoAutoMsj && p.ultimoAutoMsj >= p.fechaConsulta) {
+        // sin recordatorio explícito: uso la fecha de la columna L (sincroniza entre dispositivos)
+        const diasDesdeContacto = diasEntre(p.ultimoAutoMsj, hoy);
+        if (diasDesdeContacto >= 0 && diasDesdeContacto < getDiasRecontacto()) return 'esperando';
+      }
+      return base;
     }
 
     function tieneTelValido(t) {
@@ -1107,7 +1202,7 @@
         const notas = row[12] || '';
         const nombreWA = row[2] || '';
         const diasDesde = fechaConsulta ? diasEntre(fechaConsulta, hoy) : null;
-        const estado = calcularEstado({ fechaConsulta, diasEntreControles }, hoy);
+        const estado = calcularEstado({ fechaConsulta, diasEntreControles, ultimoAutoMsj, sheetRow }, hoy);
 
         patients.push({
           sheetRow,
@@ -1147,7 +1242,7 @@
         });
       } else {
         // prioridad (default)
-        const orden = { pendiente: 0, seguimiento: 1, aldia: 2, sin: 3 };
+        const orden = { pendiente: 0, seguimiento: 1, esperando: 2, aldia: 3, sin: 4 };
         arr.sort((a, b) => {
           const oa = orden[a.estado] ?? 9;
           const ob = orden[b.estado] ?? 9;
@@ -1176,7 +1271,7 @@
     }
 
     function contarEstados(pacientes) {
-      const c = { aldia: 0, seguimiento: 0, pendiente: 0, sin: 0 };
+      const c = { aldia: 0, seguimiento: 0, pendiente: 0, esperando: 0, sin: 0 };
       pacientes.forEach(p => c[p.estado] = (c[p.estado] || 0) + 1);
       return c;
     }
@@ -1404,9 +1499,10 @@
       const counts = contarEstados(state.patients);
       const wrap = el('div', { class: 'stats' });
       const items = [
-        { key: 'aldia', label: 'Al día', cls: 'green', count: counts.aldia },
-        { key: 'seguimiento', label: 'Seguimiento', cls: 'amber', count: counts.seguimiento },
         { key: 'pendiente', label: 'Pendiente', cls: 'red', count: counts.pendiente },
+        { key: 'seguimiento', label: 'Seguimiento', cls: 'amber', count: counts.seguimiento },
+        { key: 'esperando', label: 'Esperando', cls: 'blue', count: counts.esperando },
+        { key: 'aldia', label: 'Al día', cls: 'green', count: counts.aldia },
       ];
       if (counts.sin > 0) {
         items.push({ key: 'sin', label: 'Sin consulta', cls: 'gray', count: counts.sin });
@@ -1434,6 +1530,7 @@
         { k: 'todos', l: 'Todos' },
         { k: 'pendiente', l: 'Pendiente' },
         { k: 'seguimiento', l: 'Seguimiento' },
+        { k: 'esperando', l: 'Esperando' },
         { k: 'aldia', l: 'Al día' },
         { k: 'sin', l: 'Sin consulta' },
       ];
@@ -1567,13 +1664,14 @@
     }
 
     function rowStateClass(estado) {
-      return ({ pendiente: 'row-red', seguimiento: 'row-amber', sin: 'row-gray', aldia: '' })[estado] || '';
+      return ({ pendiente: 'row-red', seguimiento: 'row-amber', esperando: 'row-blue', sin: 'row-gray', aldia: '' })[estado] || '';
     }
     function estadoBadge(estado) {
       const m = {
         aldia: { l: 'Al día', c: 'green' },
         seguimiento: { l: 'Seguimiento', c: 'amber' },
         pendiente: { l: 'Pendiente', c: 'red' },
+        esperando: { l: 'Esperando respuesta', c: 'blue' },
         sin: { l: 'Sin consulta', c: 'gray' },
       };
       const v = m[estado] || m.sin;
@@ -1602,38 +1700,50 @@
       }
       tr.appendChild(intervaloCell);
 
-      tr.appendChild(el('td', null, estadoBadge(p.estado)));
+      const estadoCell = el('td', null, estadoBadge(p.estado));
+      if (p.estado === 'esperando') {
+        estadoCell.appendChild(el('div', { style: 'font-size: 11px; color: var(--blue-text); margin-top: 4px;' }, infoEsperando(p)));
+      }
+      tr.appendChild(estadoCell);
       tr.appendChild(renderActionsCell(p));
       return tr;
     }
 
-    function renderActionsCell(p) {
-      const cell = el('td', { class: 'actions-cell' });
-      const wrap = el('div', { style: 'display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap;' });
+    // botones de acción compartidos por tabla y cards
+    function renderAccionesBotones(p) {
+      const btns = [];
+      const canWa = tieneTelValido(p.telefono) && p.autoMsg;
 
-      const necesita = p.estado === 'pendiente' || p.estado === 'seguimiento';
-      const canWa = necesita && tieneTelValido(p.telefono) && p.autoMsg;
-      const alreadySent = state.sentToday.ids.includes(p.sheetRow);
-
-      if (necesita) {
-        if (alreadySent) {
-          wrap.appendChild(el('button', { class: 'btn-wa sent', onclick: () => desmarcarContactado(p), title: 'Tocá para deshacer y volver a habilitar el envío' }, 'Contactado ✓ · deshacer'));
-        } else {
-          if (canWa) {
-            const wbtn = el('button', { class: 'btn-wa', onclick: () => enviarWhatsApp(p), title: 'Abrir WhatsApp con el mensaje' });
-            wbtn.appendChild(svgIcon('whatsapp'));
-            wbtn.appendChild(document.createTextNode(' WhatsApp'));
-            wrap.appendChild(wbtn);
-          }
-          const markBtn = el('button', { class: 'btn-mark', onclick: () => marcarContactado(p), title: 'Marcar como contactado (sin abrir WhatsApp)' }, canWa ? '✓' : '✓ Marcar');
-          wrap.appendChild(markBtn);
+      if (p.estado === 'pendiente' || p.estado === 'seguimiento') {
+        if (canWa) {
+          const wbtn = el('button', { class: 'btn-wa', onclick: () => enviarWhatsApp(p), title: 'Abrir WhatsApp con el mensaje' });
+          wbtn.appendChild(svgIcon('whatsapp'));
+          wbtn.appendChild(document.createTextNode(' WhatsApp'));
+          btns.push(wbtn);
         }
+        btns.push(el('button', { class: 'btn-mark', onclick: () => marcarContactado(p), title: 'Marcar como contactado' }, canWa ? '✓' : '✓ Marcar'));
+        if (!tieneTelValido(p.telefono)) btns.push(el('span', { class: 'badge outline' }, 'Sin teléfono'));
+        else if (!p.autoMsg) btns.push(el('span', { class: 'badge outline' }, 'Manual'));
+      } else if (p.estado === 'esperando') {
+        if (canWa) {
+          const wbtn = el('button', { class: 'btn-wa', onclick: () => enviarWhatsApp(p), title: 'Volver a contactar' });
+          wbtn.appendChild(svgIcon('whatsapp'));
+          wbtn.appendChild(document.createTextNode(' Reenviar'));
+          btns.push(wbtn);
+        }
+        btns.push(el('button', { class: 'btn-undo', onclick: () => desmarcarContactado(p), title: 'Deshacer: vuelve a Pendiente' }, '↺ Deshacer'));
       } else if (p.estado === 'aldia') {
-        wrap.appendChild(el('span', { class: 'badge green' }, '✓ Al día'));
+        btns.push(el('span', { class: 'badge green' }, '✓ Al día'));
       }
 
-      const editBtn = el('button', { class: 'btn-edit', onclick: () => openPatientModal(p) }, 'Editar');
-      wrap.appendChild(editBtn);
+      btns.push(el('button', { class: 'btn-edit', onclick: () => openPatientModal(p) }, 'Editar'));
+      return btns;
+    }
+
+    function renderActionsCell(p) {
+      const cell = el('td', { class: 'actions-cell' });
+      const wrap = el('div', { style: 'display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; align-items: center;' });
+      renderAccionesBotones(p).forEach(b => wrap.appendChild(b));
       cell.appendChild(wrap);
       return cell;
     }
@@ -1641,7 +1751,7 @@
     function renderCards(list) {
       const wrap = el('div', { class: 'cards' });
       list.forEach(p => {
-        const stClass = ({ pendiente: 'red', seguimiento: 'amber', aldia: 'green', sin: 'gray' })[p.estado] || '';
+        const stClass = ({ pendiente: 'red', seguimiento: 'amber', esperando: 'blue', aldia: 'green', sin: 'gray' })[p.estado] || '';
         const card = el('div', { class: `pcard ${stClass}` });
         const top = el('div', { class: 'pcard-top' }, [
           el('div', null, [
@@ -1657,28 +1767,15 @@
         let intervaloLine = `Intervalo: cada ${p.diasEntreControles} días`;
         if (p.diasEntreControles > 30) intervaloLine += ' 🔁';
         meta.appendChild(el('div', null, intervaloLine));
+        if (p.estado === 'esperando') {
+          meta.appendChild(el('div', { style: 'color: var(--blue-text); font-weight: 600;' }, infoEsperando(p)));
+        }
         if (!p.autoMsg) meta.appendChild(el('div', null, '· Mensaje manual'));
         if (!tieneTelValido(p.telefono)) meta.appendChild(el('div', null, '· Sin teléfono'));
         card.appendChild(meta);
 
         const acts = el('div', { class: 'pcard-actions' });
-        const necesita = p.estado === 'pendiente' || p.estado === 'seguimiento';
-        const canWa = necesita && tieneTelValido(p.telefono) && p.autoMsg;
-        const alreadySent = state.sentToday.ids.includes(p.sheetRow);
-        if (necesita) {
-          if (alreadySent) {
-            acts.appendChild(el('button', { class: 'btn-wa sent', onclick: () => desmarcarContactado(p), title: 'Tocá para deshacer' }, 'Contactado ✓ · deshacer'));
-          } else {
-            if (canWa) {
-              const wbtn = el('button', { class: 'btn-wa', onclick: () => enviarWhatsApp(p) });
-              wbtn.appendChild(svgIcon('whatsapp'));
-              wbtn.appendChild(document.createTextNode(' WhatsApp'));
-              acts.appendChild(wbtn);
-            }
-            acts.appendChild(el('button', { class: 'btn-mark', onclick: () => marcarContactado(p) }, '✓ Marcar'));
-          }
-        }
-        acts.appendChild(el('button', { class: 'btn-edit', onclick: () => openPatientModal(p) }, 'Editar'));
+        renderAccionesBotones(p).forEach(b => acts.appendChild(b));
         card.appendChild(acts);
         wrap.appendChild(card);
       });
@@ -1688,56 +1785,100 @@
     // ═══════════════════════════════════════════════════════════════
     //                  ACCIONES
     // ═══════════════════════════════════════════════════════════════
-    async function marcarContactado(p) {
-      markSent(p.sheetRow);
-      toast(`${primerNombre(p.nombreInfo.paciente)} marcado como contactado ✓`);
-      renderApp();
-      if (state.token) {
-        try {
-          await updateCells(p.sheetRow, 'L', [fmtFechaSheet(new Date())]);
-        } catch (e) {
-          if (e.message === 'TOKEN_EXPIRED') {
-            try { await requestToken(); await updateCells(p.sheetRow, 'L', [fmtFechaSheet(new Date())]); } catch {}
-          }
+    // recalcula el estado de todos los pacientes en memoria (tras un snooze, etc.)
+    function recomputeEstados() {
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      state.patients.forEach(p => { p.estado = calcularEstado(p, hoy); });
+    }
+
+    // escribe la fecha en la columna L del sheet (sin bloquear la UI)
+    async function escribirColumnaL(sheetRow, valor) {
+      if (!state.token) return;
+      try {
+        await updateCells(sheetRow, 'L', [valor]);
+      } catch (e) {
+        if (e.message === 'TOKEN_EXPIRED') {
+          try { await requestToken(); await updateCells(sheetRow, 'L', [valor]); } catch {}
         }
       }
     }
 
-    async function desmarcarContactado(p) {
-      unmarkSent(p.sheetRow);
-      toast(`${primerNombre(p.nombreInfo.paciente)}: contacto deshecho — podés volver a enviar`);
-      renderApp();
-      // revertir la columna L del sheet al valor anterior
-      if (state.token) {
-        const valorAnterior = p.ultimoAutoMsj ? fmtFechaSheet(p.ultimoAutoMsj) : '';
-        try {
-          await updateCells(p.sheetRow, 'L', [valorAnterior]);
-        } catch (e) {
-          if (e.message === 'TOKEN_EXPIRED') {
-            try { await requestToken(); await updateCells(p.sheetRow, 'L', [valorAnterior]); } catch {}
-          }
-        }
-      }
-    }
-
-    async function enviarWhatsApp(p) {
+    // abre WhatsApp y después muestra el popup de recontacto
+    function enviarWhatsApp(p) {
       if (!tieneTelValido(p.telefono)) { toast('Teléfono inválido', 'error'); return; }
       const msj = construirMensaje(p);
       const url = `https://wa.me/${p.telefono}?text=${encodeURIComponent(msj)}`;
       window.open(url, '_blank');
+      popupRecontacto(p, true);
+    }
+
+    // marcar contactado sin abrir WhatsApp → muestra el popup
+    function marcarContactado(p) {
+      popupRecontacto(p, false);
+    }
+
+    // popup para elegir en cuántos días recordar el recontacto
+    function popupRecontacto(p, waAbierto) {
+      const modal = el('div', { class: 'modal', style: 'max-width: 440px;' });
+      const closeBtn = el('button', { class: 'btn-icon', onclick: closeModal });
+      closeBtn.appendChild(svgIcon('close'));
+      modal.appendChild(el('div', { class: 'modal-header' }, [
+        el('h2', null, `✓ Contactaste a ${primerNombre(p.nombreInfo.paciente)}`),
+        closeBtn,
+      ]));
+      modal.appendChild(el('p', { style: 'color: var(--text-2); margin: 0 0 8px;' },
+        waAbierto
+          ? 'Se abrió WhatsApp con el mensaje. Si lo enviaste, elegí cuándo recordártelo de nuevo:'
+          : '¿Cuándo querés que te lo recuerde de nuevo, si todavía no coordinaste la consulta?'));
+      modal.appendChild(el('p', { style: 'color: var(--text-3); font-size: 12px; margin: 0 0 18px;' },
+        'Mientras tanto el paciente queda en "Esperando" (azul), fuera del rojo.'));
+
+      const opts = [
+        { dias: 3, l: 'En 3 días' },
+        { dias: getDiasRecontacto(), l: `En ${getDiasRecontacto()} días`, rec: true },
+        { dias: 15, l: 'En 15 días' },
+      ];
+      const optWrap = el('div', { style: 'display: flex; flex-direction: column; gap: 8px;' });
+      opts.forEach(o => {
+        const b = el('button', {
+          class: 'btn ' + (o.rec ? 'btn-primary' : 'btn-secondary'),
+          style: 'width: 100%; justify-content: center;',
+          onclick: () => confirmarRecontacto(p, o.dias),
+        }, o.l + (o.rec ? ' · recomendado' : ''));
+        optWrap.appendChild(b);
+      });
+      modal.appendChild(optWrap);
+
+      modal.appendChild(el('div', { style: 'margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);' }, [
+        el('button', {
+          class: 'btn btn-secondary', style: 'width: 100%; justify-content: center;',
+          onclick: () => { closeModal(); openPatientModal(p); },
+        }, '📅 Ya agendé la consulta → cargar fecha'),
+      ]));
+
+      showModal(modal);
+    }
+
+    function confirmarRecontacto(p, dias) {
+      setSnooze(p.sheetRow, dias);
       markSent(p.sheetRow);
+      p.ultimoAutoMsj = new Date();
+      recomputeEstados();
+      closeModal();
+      toast(`${primerNombre(p.nombreInfo.paciente)} contactado ✓ — te lo recuerdo en ${dias} días`);
       renderApp();
-      // si tenemos token, actualizamos col L con fecha de hoy
-      if (state.token) {
-        try {
-          await updateCells(p.sheetRow, 'L', [fmtFechaSheet(new Date())]);
-        } catch (e) {
-          if (e.message === 'TOKEN_EXPIRED') {
-            // silenciosamente intentar refrescar
-            try { await requestToken(); await updateCells(p.sheetRow, 'L', [fmtFechaSheet(new Date())]); } catch {}
-          }
-        }
-      }
+      escribirColumnaL(p.sheetRow, fmtFechaSheet(new Date()));
+    }
+
+    function desmarcarContactado(p) {
+      clearSnooze(p.sheetRow);
+      unmarkSent(p.sheetRow);
+      p.ultimoAutoMsj = null;
+      recomputeEstados();
+      toast(`${primerNombre(p.nombreInfo.paciente)}: deshecho — vuelve a Pendiente`);
+      renderApp();
+      escribirColumnaL(p.sheetRow, '');
     }
 
     async function connectGoogle() {
@@ -1997,6 +2138,17 @@
       clientField.appendChild(clientInput);
       modal.appendChild(clientField);
 
+      // Días de recontacto
+      modal.appendChild(el('div', { style: 'margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);' }, [
+        el('strong', { style: 'display:block; margin-bottom: 4px;' }, 'Seguimiento'),
+      ]));
+      const recontactoField = el('div', { class: 'field' });
+      recontactoField.appendChild(el('label', null, 'Días de espera tras contactar a un paciente'));
+      const recontactoInput = el('input', { class: 'input', type: 'number', min: '1', step: '1', value: getDiasRecontacto() });
+      recontactoField.appendChild(recontactoInput);
+      recontactoField.appendChild(el('div', { class: 'helper' }, 'Cuando contactás a un paciente queda en "Esperando" (azul) por estos días. Si no coordinás la consulta, vuelve a "Pendiente" (rojo) para recontactarlo. Default: 7.'));
+      modal.appendChild(recontactoField);
+
       // Templates editor
       modal.appendChild(el('div', { style: 'margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);' }, [
         el('strong', { style: 'display:block; margin-bottom: 4px;' }, 'Plantillas de mensaje'),
@@ -2082,6 +2234,9 @@
           else localStorage.removeItem(STORAGE.clientId);
           if (tplDirectoInput.value.trim()) localStorage.setItem(STORAGE.templateDirecto, tplDirectoInput.value);
           if (tplInterInput.value.trim()) localStorage.setItem(STORAGE.templateIntermediario, tplInterInput.value);
+          const recN = parseInt(recontactoInput.value, 10);
+          if (!isNaN(recN) && recN > 0) localStorage.setItem(STORAGE.diasRecontacto, String(recN));
+          recomputeEstados();
           toast('Configuración guardada ✓');
           closeModal();
           renderApp();
